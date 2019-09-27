@@ -38,6 +38,8 @@ display(iris_dataset[data].shape)
 ```
 配列の要素数がでる。(150,4)みたいな
 
+行列の順じゃなくて、列行になっているのがキモい
+
 ---
 
 #### train_test_split (sklearnのメソッド)
@@ -72,6 +74,8 @@ grr = pd.plotting.scatter_matrix(iris_dataframe , c = y_train , figsize=(15,15) 
 
 ![scatter_matrix](img/scatter_matrix.png)
 
+それぞれの丸が独立しているので、分類しやすそうなデータってこと？
+斜めにある棒グラフは度数分布表（ヒストグラム）という
 
 
 #### k-最近傍法
