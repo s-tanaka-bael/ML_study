@@ -158,7 +158,68 @@ display(lr.intercept_)
 
 #### そんな時に、リッジ回帰
 
+```
+from sklearn.linear_model import Ridge
 
+ridge = Ridge().fit(X_train,y_train)
+display(ridge.score(X_train,y_train))
+display(ridge.score(X_test,y_test))
+
+>> 0.8857966585170941
+>> 0.7527683481744755
+```
+
+* リッジ回帰は alpha 引数で正則化(せいそくか)できる
+* デフォルトは alpha = 1 
+* ↑で見れるように、リッジ回帰は訓練データへの適合は低いけど、テストデータへの適合は高い（より汎化している）
+* リッジ回帰は過剰適合の危険は少ない
+* 最良の alpha はデータセットに依存する
+
+
+```
+ridge10 = Ridge(alpha=10).fit(X_train,y_train)
+display(ridge10.score(X_train,y_train))
+display(ridge10.score(X_test,y_test))
+
+>> 0.7882787115369614
+>> 0.6359411489177311
+```
+
+* alphaが増えるほと過剰適合していく
+
+```
+ridge01 = Ridge(alpha=0.1).fit(X_train,y_train)
+display(ridge01.score(X_train,y_train))
+display(ridge01.score(X_test,y_test))
+
+>> 0.9282273685001987
+>> 0.7722067936479814
+``` 
+
+* alphaが減ると適合不足になる。
+
+それをグラフでみるには以下
+
+```
+plt.plot(ridge.coef_ , 's' , label="Ridge alpha=1")
+plt.plot(ridge10.coef_ , 's' , label="Ridge alpha=10")
+plt.plot(ridge01.coef_ , 's' , label="Ridge alpha=0.1")
+
+plt.plot(lr.coef_ , 'o' ,label="LinearRegression")
+plt.xlabel("Coefficient index")
+plt.ylabel("Coefficient magnitude")
+plt.hlines(0,0,len(lr.coef_))
+plt.ylim(-25,25)
+plt.legend()
+```
+
+!["ridge"](img/ridge.png)
+
+* x軸は coef_ の要素を表す
+* x=0 は最初の特徴量に対する係数、x=1は2番目の特徴量に対する係数となって、100まで続いている
+* alpha=10 の時は殆どの特徴量が-3から3の範囲に収まっている
+* alpha=1 はちょっと上下の範囲がばらついている
+* alpha=0.1 の時はかなりばらついている
 
 
 
