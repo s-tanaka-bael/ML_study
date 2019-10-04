@@ -222,4 +222,93 @@ plt.legend()
 * alpha=0.1 の時はかなりばらついている
 
 
+#### Lasso
+
+Ridgeとは別の線形回帰のやつ
+* いくつかのデータを完全に無視するのが特徴
+
+```
+from sklearn.linear_model import Lasso
+
+lasso = Lasso().fit(X_train , y_train)
+display(lasso.score(X_train,y_train))
+display(lasso.score(X_test,y_test))
+np.sum(lasso.coef_ != 0)
+
+>> 0.29323768991114596
+>> 0.20937503255272272
+>> 4
+```
+
+* デフォだとめちゃくちゃ弱い
+* 4つしか特徴量使ってない
+
+```
+lasso001 = Lasso(alpha=0.01 , max_iter=100000).fit(X_train,y_train)
+
+display(lasso001.score(X_train,y_train))
+display(lasso001.score(X_test,y_test))
+display(np.sum(lasso001.coef_ != 0))
+
+>> 0.8962226511086497
+>> 0.7656571174549983
+>> 33
+```
+
+* alphaが小さくなるとより複雑なデータに適合するようになる
+
+```
+lasso00001 = Lasso(alpha=0.0001 , max_iter=100000).fit(X_train,y_train)
+
+display(lasso00001.score(X_train,y_train))
+display(lasso00001.score(X_test,y_test))
+display(np.sum(lasso00001.coef_ != 0))
+
+>> 0.9507158754515462
+>> 0.6437467421273558
+>> 96
+```
+* alpha小さくしすぎると正則化の効果が薄れて過剰適合する
+
+
+#### クラス分類の為の線形モデル
+
+* ロジスティック回帰と線形サポートベクターマシン
+
+```
+# ロジスティック回帰
+linear_model.LogisticRegression 
+
+# 線形サポートベクタマシン
+svm.LinearSVC
+```
+
+forgeデータでおためし
+
+```
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+
+X,y = mglearn.datasets.make_forge()
+
+fig, axes = plt.subplots(1,2, figsize=(10,3))
+
+for model, ax in zip([LinearSVC(),LogisticRegression()], axes):
+    clf = model.fit(X,y)
+    mglearn.plots.plot_2d_separator(clf , X , fill=False , eps=0.5 , ax=ax , alpha=.7)
+    mglearn.discrete_scatter(X[:,0] , X[:,1] , y , ax=ax)
+    ax.set_title("{}".format(clf.__class__.__name__))
+    ax.set_xlabel("Feature 0")
+    ax.set_ylabel("Feature 1")
+
+axes[0].legend
+```
+
+!["LRvsSVC"](img/LRvsSVC.png)
+
+* LogisticRegressionとLinearSVCの正則化強度を決定するパラメータはCと言われる
+* Cが大きくなると正則化が弱くなる（訓練データに適合度をあげる）
+* Cが小さくなるとデータポイントの「大多数」に対して適合しようとする（この辺が面白い特徴らしい）
+
+
 
