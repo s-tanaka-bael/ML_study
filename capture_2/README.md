@@ -311,4 +311,113 @@ axes[0].legend
 * Cが小さくなるとデータポイントの「大多数」に対して適合しようとする（この辺が面白い特徴らしい）
 
 
+!["LRvsSVC2"](img/LRvsSVC2.png)
+
+* Cが小さい〜大きいまでの決定境界
+* 小さすぎると境界が水平に近くなって、大きすぎると過剰適合
+
+
+別のデータでやってみる
+
+```
+from sklearn.datasets import load_breast_cancer
+cancer = load_breast_cancer()
+X_train,X_test,y_train,y_test = train_test_split(cancer.data , cancer.target , stratify=cancer.target , random_state = 42)
+logreg = LogisticRegression().fit(X_train,y_train)
+
+display(logreg.score(X_train,y_train))
+display(logreg.score(X_test,y_test))
+
+>> 0.9530516431924883
+>> 0.958041958041958
+```
+
+#### 線形モデルによる多クラス分類
+
+* 基本線形モデルは多クラス分類できないので、1対nでそれっぽい感じにする
+
+```
+from sklearn.datasets import make_blobs
+
+X,y = make_blobs(random_state=42)
+mglearn.discrete_scatter(X[:,0] , X[:,1] , y)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+plt.legend(["Class 0", "Class 1" , "Class 2"])
+```
+
+!["LRvsSVC3"](img/LRvsSVC3.png)
+
+```
+linear_svm = LinearSVC().fit(X,y)
+display(linear_svm.coef_.shape)
+display(linear_svm.intercept_.shape)
+
+>> (3, 2)
+>> (3,)
+```
+
+
+```
+mglearn.discrete_scatter(X[:,0] , X[:,1] , y)
+line = np.linspace(-15,15)
+for coef , intercept , color in zip(linear_svm.coef_ , linear_svm.intercept_ , ['b','r','g']):
+    plt.plot(line, -(line * coef[0] + intercept) / coef[1], c=color)
+
+plt.ylim(-10 , 15)
+plt.xlim(-10 , 8)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+plt.legend(["Class 0","Class 1","Class 2", "Line class 0","Line class 1","Line class 2"], loc=(1.01,0.3))
+
+```
+
+* それぞれのクラスの決定境界はこう
+
+!["LRvsSVC4"](img/LRvsSVC4.png)
+
+
+```
+mglearn.plots.plot_2d_classification(linear_svm , X , fill=True , alpha=.7)
+mglearn.discrete_scatter(X[:,0] , X[:,1] , y)
+ine = np.linspace(-15,15)
+for coef , intercept , color in zip(linear_svm.coef_ , linear_svm.intercept_ , ['b','r','g']):
+    plt.plot(line, -(line * coef[0] + intercept) / coef[1], c=color)
+
+plt.ylim(-10 , 15)
+plt.xlim(-10 , 8)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+plt.legend(["Class 0","Class 1","Class 2", "Line class 0","Line class 1","Line class 2"], loc=(1.01,0.3))
+```
+
+* こんな感じ
+
+!["LRvsSVC5"](img/LRvsSVC5.png)
+
+
+#### 利点・欠点・パラメータ
+
+* 回帰モデルではalpha
+* LinbearSVCとLogisticRegressionではC
+* alphaが大きいとき、Cが小さいときは単純なモデルに適合する
+* 線形モデルは高速、大きいデータセットにも適用できる
+* デメリット何書いてるかよくわからんかった
+
+
+
+#### ナイーブベイズクラス分類器
+
+* 線形モデルによく似た分類器
+* 高速だけど、LogisticRegressionとかLinearSVCとかより汎化性能が劣る場合が多い
+* scikit-learn には GaussianNB , BernoulliNB , MultinomialNB が実装されている
+* GaussianNBは任意の連続値データに適用できる
+* BernoulliNBは2値データを仮定されている
+* MultinomialNBはカウントデータを仮定している
+    * カウントデータは例えば、文中に出てくる単語の出現数など
+
+
+#### 決定木
+
+
 
