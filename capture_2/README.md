@@ -422,8 +422,45 @@ plt.legend(["Class 0","Class 1","Class 2", "Line class 0","Line class 1","Line c
 * Yes/No で答えられる質問で構成された、階層的な木構造を学習する
 * 決定木の学習は正解に最も早く辿り着けるようなYes/No型の質問を学習すること
 * 個々のテストは1つの特徴量しかもたない(Yes/Noなので)常に軸に平行な境界を持つ
+* 1つの対象値になるまで(pureという)やると過剰適合
+* ↑葉が純粋、みたいな言い方をする
+* それを防ぐために　事前枝刈り(pre-pruning)　、　事後枝刈り(post-pruning)　を行う
+* scikit-learnでは、決定木は DecisionTreeRegressorとDecisionTreeClassifierが実装されている
+* どちらも事前枝刈りしか実装されていない
+
+事前枝刈り
+
+```
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_breast_cancer
+
+cancer = load_breast_cancer()
+X_train,X_test,y_train,y_test = train_test_split(
+    cancer.data , cancer.target , stratify=cancer.target , random_state=42)
+tree = DecisionTreeClassifier(random_state=0)
+tree.fit(X_train,y_train)
+display(tree.score(X_train,y_train))
+display(tree.score(X_test,y_test))
+
+>> 1.0
+>> 0.9370629370629371
+```
+
+* ↑　は訓練セットに対して100%、pureになっている（過剰適合している）
+* これを max_depth=4 にしてやると...
 
 
+```
+tree = DecisionTreeClassifier(max_depth=4 , random_state= 0)
+tree.fit(X_train,y_train)
 
+display(tree.score(X_train,y_train))
+display(tree.score(X_test,y_test))
 
+>> 0.9882629107981221
+>> 0.951048951048951
+```
 
+!["Tree Dot"](img/tree_dot.png)
+
+こんな感じで出る
