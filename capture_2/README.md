@@ -425,7 +425,7 @@ plt.legend(["Class 0","Class 1","Class 2", "Line class 0","Line class 1","Line c
 * 1つの対象値になるまで(pureという)やると過剰適合
 * ↑葉が純粋、みたいな言い方をする
 * それを防ぐために　事前枝刈り(pre-pruning)　、　事後枝刈り(post-pruning)　を行う
-* scikit-learnでは、決定木は DecisionTreeRegressorとDecisionTreeClassifierが実装されている
+* scikit-learnでは、決定木は DecisionTreeRegressor(連続値に使う) と DecisionTreeClassifier(離散値に使う) が実装されている
 * どちらも事前枝刈りしか実装されていない
 
 事前枝刈り
@@ -464,3 +464,88 @@ display(tree.score(X_test,y_test))
 !["Tree Dot"](img/tree_dot.png)
 
 こんな感じで出る
+
+
+#### 特徴量の重要度
+
+* 個々の特徴量がどの程度重要かを示す割合
+* 0-1の間で表され、総和は1
+* 0がまったく使われていない
+* 1は完全にターゲットを予測できる
+
+```
+print("Feature Importances:\n{}".format(tree.feature_importances_))
+
+>> Feature Importances:
+[0.         0.         0.         0.         0.         0.
+ 0.         0.         0.         0.         0.01019737 0.04839825
+ 0.         0.         0.0024156  0.         0.         0.
+ 0.         0.         0.72682851 0.0458159  0.         0.
+ 0.0141577  0.         0.018188   0.1221132  0.01188548 0.        ]
+ ```
+
+特徴量の重要度の可視化
+
+```
+def plot_feature_importances_cancer(model):
+    n_features = cancer.data.shape[1]
+    plt.barh(range(n_features), model.feature_importances_ , align='center')
+    plt.yticks(np.arange(n_features), cancer.feature_names)
+    plt.xlabel("Feature importance")
+    plt.ylabel("Feature")
+
+plot_feature_importances_cancer(tree)
+```
+
+!["Feature_Importance"](img/Feature_Importance.png)
+
+* どの特徴量が重要かを表すが、それがどういう結果になるかとは別なので注意
+
+
+
+#### DecisionTreeRegressor
+
+* 回帰決定木
+* 使い方はクラス分類決定木とほとんど同じ
+* 回帰の場合は外挿(extrapolate)ができない。(訓練データのレンジの外側には対応しない)
+
+```
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression
+
+data_train = ram_prices[ram_prices.date < 2000]
+data_test = ram_prices[ram_prices.date >= 2000]
+
+X_train = data_train.date[:,np.newaxis]
+y_train = np.log(data_train.price)
+
+tree = DecisionTreeRegressor().fit(X_train, y_train)
+linear_reg = LinearRegression().fit(X_train,y_train)
+
+
+X_all = ram_prices.date[:,np.newaxis]
+
+pred_tree = tree.predict(X_all)
+pred_lr = linear_reg.predict(X_all)
+
+price_tree = np.exp(pred_tree)
+price_lr = np.exp(pred_lr)
+
+plt.semilogy(data_train.date, data_train.price , label="Training data")
+plt.semilogy(data_test.date, data_test.price , label="Test data")
+plt.semilogy(ram_prices.date, price_tree, label="Tree prediction")
+plt.semilogy(ram_prices.date, price_lr , label="Linear prediction")
+plt.legend()
+```
+
+
+!["LRvsDTR"](img/LRvsDTR.png)
+
+* 線形回帰の方はテストデータに対してもそこそこフィットしている
+* 回帰決定木は訓練データの外側のデータには全く適合していない
+* ただし、訓練データの範囲内には「完璧に」適合している
+* 決定木は事前枝刈をしたとしても単体では過剰適合しがちで、実際には次に見るアンサンブル法が用いられる
+
+
+
+
