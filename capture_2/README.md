@@ -547,5 +547,57 @@ plt.legend()
 * 決定木は事前枝刈をしたとしても単体では過剰適合しがちで、実際には次に見るアンサンブル法が用いられる
 
 
+### ランダムフォレスト
+
+* 決定木のデメリットは過剰適合しやすい事
+* ランダムフォレストとは、複数の決定木をたくさん集めたもので、個々の決定木は過剰適合していてもそれらを寄せ集めて平均を取ることで過剰適合の度合いを減らす手法
+
+
+```
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_moons
+
+X , y = make_moons(n_samples=100 , noise=0.25 , random_state= 3)
+X_train , X_test , y_train , y_test = train_test_split(X,y,stratify = y,random_state=42)
+
+forest = RandomForestClassifier(n_estimators=5 , random_state=2)
+forest.fit(X_train,y_train)
+
+fig , axes = plt.subplots(2,3,figsize=(20,10))
+for i , (ax, tree) in enumerate(zip(axes.ravel(),forest.estimators_)):
+    ax.set_title("Tree {}".format(i))
+    mglearn.plots.plot_tree_partition(X_train,y_train,tree,ax=ax)
+
+mglearn.plots.plot_2d_separator(forest,X_train,fill=True,ax=axes[-1,-1],alpha=.4)
+axes[-1,-1].set_title("Random Forest")
+mglearn.discrete_scatter(X_train[:,0], X_train[:,1], y_train)
+```
+
+!["RDF"](img/random_forest1.png)
+
+
+こんな感じ
+
+
+```
+X_train , X_test , y_train , y_test = train_test_split(cancer.data , cancer.target , random_state=0)
+forest = RandomForestClassifier(n_estimators=100,random_state=0)
+forest.fit(X_train,y_train)
+
+print("Accuracy on training set : {:.3f}".format(forest.score(X_train,y_train)))
+print("Accuracy on test set: {:.3f}".format(forest.score(X_test,y_test)))
+
+>> Accuracy on training set : 1.000
+>> Accuracy on test set: 0.972
+```
+
+* 何もパラメータ調整してなくても97%の精度が出ている！
+* max_features や 事前枝刈りを行うことでチューニングはできるが、大抵の場合デフォルトでも十分に機能する
+
+
+!["RDF2"](img/random_forest2.png)
+
+* ランダムフォレストの時の特徴量の重要度
+* 単体の決定木よりはるかに複雑になっている
 
 
