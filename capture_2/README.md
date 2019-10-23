@@ -601,3 +601,114 @@ print("Accuracy on test set: {:.3f}".format(forest.score(X_test,y_test)))
 * 単体の決定木よりはるかに複雑になっている
 
 
+### 勾配ブースティング回帰木(勾配ブースティングマシン)
+
+* 回帰ってあるけど、回帰にも分類にも使える
+
+
+```
+from sklearn.ensemble import GradientBoostingClassifier
+
+X_train , X_test , y_train , y_test = train_test_split(cancer.data , cancer.target , random_state = 0)
+
+gbrt = GradientBoostingClassifier(random_state=0)
+gbrt.fit(X_train,y_train)
+
+print("Accuracy on training set: {:.3f}".format(gbrt.score(X_train,y_train)))
+print("Accuracy on test set: {:.3f}".format(gbrt.score(X_test,y_test)))
+
+>> Accuracy on training set: 1.000
+>> Accuracy on test set: 0.965
+```
+* 訓練に対して100%になっているので過剰適合している。事前枝刈りをしてやればいい。
+
+```
+gbrt = GradientBoostingClassifier(random_state=0,max_depth=1)
+gbrt.fit(X_train,y_train)
+
+print("Accuracy on training set: {:.3f}".format(gbrt.score(X_train,y_train)))
+print("Accuracy on test set: {:.3f}".format(gbrt.score(X_test,y_test)))
+
+>> Accuracy on training set: 0.991
+>> Accuracy on test set: 0.972
+```
+* もしくは学習率を下げてやる
+
+```
+gbrt = GradientBoostingClassifier(random_state=0,learning_rate=0.01)
+gbrt.fit(X_train,y_train)
+
+print("Accuracy on training set: {:.3f}".format(gbrt.score(X_train,y_train)))
+print("Accuracy on test set: {:.3f}".format(gbrt.score(X_test,y_test)))
+
+>> Accuracy on training set: 0.988
+>> Accuracy on test set: 0.965
+```
+
+* 可視化
+
+```
+gbrt = GradientBoostingClassifier(random_state=0,max_depth=1)
+gbrt.fit(X_train,y_train)
+
+plot_feature_importances_cancer(gbrt)
+```
+
+!["GBRT"](img/gradient_boost1.png)
+
+* ランダムフォレストと比べて、に似てるが幾つかの特徴量が完全に無視されているのがわかる
+* 一般的にはランダムフォレストを先に試して、精度をあげたい時とかに勾配するといいらしい
+
+
+### カーネル方を用いたサポートベクタマシン
+
+```
+from sklearn.datasets import make_blobs
+
+X,y = make_blobs(centers=4,random_state=8)
+y = y % 2
+
+mglearn.discrete_scatter(X[:,0],X[:,1],y)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+
+!["SVM"](img/svm1.png)
+
+* 線形モデルのクラス分類は直線でしか分類できないので、こういうデータセットではうまくいかない
+
+```
+from sklearn.svm import LinearSVC
+linear_svm = LinearSVC().fit(X,y)
+mglearn.plots.plot_2d_separator(linear_svm,X)
+mglearn.discrete_scatter(X[:,0],X[:,1],y)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+!["SVM"](img/svm2.png)
+
+* こいつを3次元のデータにしてやる
+* やり方は feature1 ** 2 , つまり2番目の特徴量の2乗を3番目の特徴量としてやる
+
+```
+# 2番目の特徴量の2乗を追加
+X_new = np.hstack([X,X[:,1:]**2])
+
+from mpl_toolkits.mplot3d import Axes3D, axes3d
+figure = plt.figure()
+# 3Dで可視化
+
+ax = Axes3D(figure , elev=-152 , azim=-26)
+# y == 0の点をプロットしてから y==1の点をプロット
+mask = y == 0
+ax.scatter(X_new[mask,0] , X_new[mask,1] , X_new[mask,2],c='b',cmap=mglearn.cm2,s=60)
+ax.scatter(X_new[~mask,0] , X_new[~mask,1] , X_new[~mask,2],c='r',marker='^',cmap=mglearn.cm2,s=60)
+ax.set_xlabel=("feature 0")
+ax.set_ylabel=("feature 1")
+ax.set_zlabel=("feature1 ** 2")
+
+```
+
+!["SVM"](img/svm3.png)
+
+* 3Dになった！
