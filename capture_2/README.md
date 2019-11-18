@@ -741,3 +741,111 @@ ax.set_zlabel("feature1 ** 2")
 
 線形SVMなのに線形じゃなくて楕円になっている
 
+### カーネルトリック
+
+* こんな感じで、非線形のデータを特徴量に加えると、線形モデルが強力になる（線形では解決できない分類を解決できる）
+* ただ、実際のデータではどのデータを特徴量に加えれば良いとかわからん。(100次元とかのデータ全部とかやると計算量が多すぎる)
+* こういう時、実際には計算させずに高次元空間のクラス分類機を学習させる数学的トリックが「カーネルトリック」
+
+* ロジックは難しいけど、要は線形モデルで解決できない問題を解決する良い感じの方法
+
+
+```
+from sklearn.svm import SVC
+X,y = mglearn.tools.make_handcrafted_dataset()
+svm = SVC(kernel='rbf',C=10,gamma=0.1).fit(X,y)
+mglearn.plots.plot_2d_separator(svm,X,eps=.5)
+mglearn.discrete_scatter(X[:,0],X[:,1],y)
+# サポートベクタをプロットする
+sv = svm.support_vectors_
+# サポートベクタのクラスラベルはdual_coef_の正負によって与えられる
+sv_labels = svm.dual_coef_.ravel() > 0
+mglearn.discrete_scatter(sv[:,0],sv[:,1],sv_labels,s=15,markeredgewidth=3)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+
+```
+
+!["SVM"](img/svm6.png)
+
+* RBFカーネル法を用いたSVMによる決定境界とサポートベクタ
+* 境界は滑らかで、非線形。ここではCとgammaの2つのパラメータで調整している
+
+
+#### SVMパラメータの調整
+
+* gammaパラメータはガウシアンカーネルの幅を調整する。このパラメータが点が近いという事を意味するスケールを決定する
+* Cパラメータは線形モデルで用いられたのと同様の正則化パラメータである。個々のデータポイントの重要度を制限する(dual_coef_を制限する)
+* これらのパラメータを変化させるとどうなるか・・・
+
+
+```
+fig,axes = plt.subplots(3,3,figsize=(15,10))
+
+for ax,C in zip(axes ,[-1,0,3]):
+    for a, gamma in zip(ax,range(-1,2)):
+        mglearn.plots.plot_svm(log_C=C,log_gamma=gamma,ax=a)
+
+axes[0,0].legend(["class 0","class 1","sv class 0","sv class 1"],ncol=4,loc=(.9,1.2))
+
+```
+
+!["SVM"](img/svm7.png)
+
+* 左から右へパラメータgammaを0.1〜10に変化させている。
+* gammaが小さいとガウシアンカーネルの直径が大きくなり、多くの点を近いと判断している
+* 左にいくにつれて決定境界が滑らかになり、右に行くにつれて個々のデータポイントをより重視いｓている
+* gammaが小さいと = 決定境界はゆっくりと変化せず、モデルの複雑さは小さくなる
+* 上から下へパラメータCを0.1から1000に変化させている
+* 線形モデルと同様、Cが小さいと個々のデータポイントが与える影響は少なくなる
+* Cを大きくするとこれらのデータポイントがより強い影響を持ち、正しくクラス分類されるに決定境界を曲げる
+
+RBFカーネル法を用いたSVMをcancerデータセットに適応してみる
+デフォルトはC=1,gamma=1/n_featuresになっている
+
+```
+X_train,X_test,y_train,y_test = train_test_split(cancer.data,cancer.target,random_state=0)
+
+svc = SVC()
+svc.fit(X_train,y_train)
+
+display(svc.score(X_train,y_train))
+display(svc.score(X_test,y_test))
+
+>> 1.0
+>> 0.6293706293706294
+
+```
+
+* 訓練セットは100%でテストセットでは63%になっているので、過剰適合している
+* SVMはうまく動く場合が多いが、パラメータの設定とデータのスケールに敏感な問題があるA
+* 特に全ての特徴量の変位が同じスケールである事を要求する
+
+#### SVMのためのデータ前処理
+
+* 特徴量をだいたいおんなじスケールにするためのものが用意されている
+* MinMaxScalerってのがあるけど、ここでは手で実装してみる
+
+```
+# 訓練セットごとの特徴量ごとに最小値を計算
+min_on_training = X_train.min(axis=0)
+# 訓練セットの特徴量ごとにレンジ(最大値-最小値)を計算
+range_on_training = (X_train - min_on_training).max(axis=0)
+
+# 最小値を引いてレンジで割る
+# 個々の特徴量はmin=0,max=1となる
+X_train_scaled = (X_train - min_on_training) / range_on_training
+display(X_train_scaled.min(axis=0))
+display(X_train_scaled.max(axis=0))
+
+>> array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+>> array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
+```
+
+
+
+
+
