@@ -846,6 +846,101 @@ display(X_train_scaled.max(axis=0))
 ```
 
 
+```
+# テストセットにも同じ変換をする
+X_test_scaled = (X_test - min_on_training) / range_on_training
+
+svc = SVC()
+svc.fit(X_train_scaled,y_train)
+
+display(svc.score(X_train_scaled,y_train))
+display(svc.score(X_test_scaled,y_test))
+
+>> 0.9483568075117371
+>> 0.951048951048951
+```
+* スケール変更によって精度があがっている。
+* Cをいじってみる
+
+```
+svc = SVC(C=1000)
+svc.fit(X_train_scaled,y_train)
+display(svc.score(X_train_scaled,y_train))
+display(svc.score(X_test_scaled,y_test))
+>> 0.9882629107981221
+>> 0.972027972027972
+```
+* さらに精度が上がった
+
+#### メリット・デメリット
+
+* データにわずかな特徴量しかない場合にも複雑な決定境界を生成できる
+* 低次元のデータでも高次元のデータでも(つまり特徴量が多くても少なくても)うまく機能する
+* ただし、サンプルの個数が大きくなるとうまく機能しない
+    * だいたい10,000くらいまでは大丈夫。100,000サンプルくらいになると、メモリ使用量などで難しくなる
+* 前処理とパラメータ調整がほぼ必要なのでたいへん
+    * なので勾配ブースティングランダムフォレストとかに比べたらめんどい
+* 特徴量が似た測定器の測定結果(カメラのピクセルとか)など、同じスケールになる場合には試してみる価値がある
 
 
+## ニューラルネットワーク（ディープラーニング）
 
+* ニューラルネットワークというアルゴリズムが「ディープラーニング」と呼ばれて最近注目を集めている
+* ここでは比較的簡単な多重パーセプトロン(multilayer perceptron:MLP)によるクラス分類と回帰についてだけ議論する
+
+* two moonsをMLPでやってみる
+
+```
+from sklearn.neural_network import MLPClassifier
+from sklearn.datasets import make_moons
+
+X,y = make_moons(n_samples=100,noise=0.25,random_state=3)
+X_train , X_test , y_train , y_test = train_test_split(X,y,stratify=y,random_state=42)
+
+mlp = MLPClassifier(solver='lbfgs',random_state=0).fit(X_train,y_train)
+mglearn.plots.plot_2d_separator(mlp,X_train,fill=True,alpha=.3)
+mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+
+!["MLP"](img/MLP.png)
+
+* ニューラルネットワークは比較的なめらかな決定境界を学習している
+* デフォルトではMLPは100隠れユニットを用いる
+    * これは小さいデータセットに対しては明らかに多すぎる
+    * この数を減らし、モデルの複雑さを減らしてもいい結果が出る
+
+
+```
+mlp = MLPClassifier(solver='lbfgs',random_state=0,hidden_layer_sizes=[10])
+mlp.fit(X_train,y_train)
+mglearn.plots.plot_2d_separator(mlp,X_train,fill=True,alpha=.3)
+mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+
+* 隠れユニット10の決定境界
+
+!["MLP"](img/MLP2.png)
+
+* 隠れユニット数を減らすと滑らかさを失う。
+
+* さらに、複雑さをリッジ回帰や線形クラス分類器で行ったのと同様にl2ペナルティで重みを0に近づける事で制御できる
+* MLPClassifierではこのパラメータは線形回帰モデルと同じくalphaで、デフォルトでは非常に小さい値（弱い正則化）に設定されている
+* 10ユニット、もしくは100ユニットの2層隠れ層をもつニューラルネットワークをtwo_moonsデータセットに適用した時のパラメータalphaの効果は次の感じ
+
+```
+fig,axes = plt.subplots(2,4,figsize=(20,8))
+for axx , n_hidden_nodes in zip (axes,[10,100]):
+    for ax,alpha in zip(axx,[0.0001,0.01,0.1,1]):
+        mlp = MLPClassifier(solver='lbfgs' , random_state=0,hidden_layer_sizes=[n_hidden_nodes,n_hidden_nodes],alpha=alpha)
+        mlp.fit(X_train,y_train)
+        mglearn.plots.plot_2d_separator(mlp,X_train,fill=True,alpha=.3,ax=ax)
+        mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train,ax=ax)
+        ax.set_title("n_hidden=[{},{}] \n alpha={:.4f}".format(n_hidden_nodes,n_hidden_nodes,alpha))
+```
+
+
+!["MLP"](img/MLP3.png)
