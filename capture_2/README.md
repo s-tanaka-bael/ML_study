@@ -944,3 +944,143 @@ for axx , n_hidden_nodes in zip (axes,[10,100]):
 
 
 !["MLP"](img/MLP3.png)
+
+* ニューラルネットワークにはたくさんのパラメータがあり、それらに乱数で重みをつける
+* なので乱数シードが違うと全然違うモデルができたりする
+
+* 全部同じパラメータだけど乱数シードだけが違う例
+
+```
+fig,axes = plt.subplots(2,4,figsize=(20,8))
+for i,ax in enumerate(axes.ravel()):
+    mlp = MLPClassifier(solver='lbfgs',random_state=i,hidden_layer_sizes=[100,100])
+    mlp.fit(X_train,y_train)
+    mglearn.plots.plot_2d_separator(mlp,X_train,fill=True,alpha=.3,ax=ax)
+    mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train,ax=ax)
+```
+
+!["MLP"](img/MLP4.png)
+
+
+* cancerデータでいろいろする
+```
+from sklearn.datasets import load_breast_cancer
+cancer = load_breast_cancer()
+print("cancer data per-feature maxima:\n{}".format(cancer.data.max(axis=0)))
+
+>> cancer data per-feature maxima:
+[2.811e+01 3.928e+01 1.885e+02 2.501e+03 1.634e-01 3.454e-01 4.268e-01
+ 2.012e-01 3.040e-01 9.744e-02 2.873e+00 4.885e+00 2.198e+01 5.422e+02
+ 3.113e-02 1.354e-01 3.960e-01 5.279e-02 7.895e-02 2.984e-02 3.604e+01
+ 4.954e+01 2.512e+02 4.254e+03 2.226e-01 1.058e+00 1.252e+00 2.910e-01
+ 6.638e-01 2.075e-01]
+```
+* デフォでやる
+```
+X_train,X_test,y_train,y_test = train_test_split(cancer.data,cancer.target,random_state=0)
+
+mlp = MLPClassifier(random_state=42)
+mlp.fit(X_train,y_train)
+
+print("Accuracy on training set : {:.2f}".format(mlp.score(X_train,y_train)))
+print("Accuracy on test set : {:.2f}".format(mlp.score(X_test,y_test)))
+
+>> Accuracy on training set : 0.94
+>> Accuracy on test set : 0.92
+```
+
+* MLPの精度はデフォでも結構いいが、他のモデルほどでもない。
+* MLPもデータの特徴量が同じ範囲に収まっている事を前提にしている
+* 次に StandardScaler を手で実装してみる
+
+```
+# 訓練セットの特徴量ごとの平均値を算出
+mean_on_train = X_train.mean(axis=0)
+# 訓練セットの特徴量ごとの標準偏差を算出
+std_on_train = X_train.std(axis=0)
+
+# 平均を引き、標準偏差の逆数でスケール変換する
+# これで mean=0 , std=1 になる
+X_train_scaled = (X_train - mean_on_train) / std_on_train
+# 全く同じ変換をテストセットにもやる
+X_test_scaled = (X_test - mean_on_train) / std_on_train
+
+mlp = MLPClassifier(random_state=0)
+mlp.fit(X_train_scaled,y_train)
+
+print("Accuracy on training set: {:.3f}".format(mlp.score(X_train_scaled,y_train)))
+print("Accuracy on test set: {:.3f}".format(mlp.score(X_test_scaled,y_test)))
+
+>> Accuracy on training set: 0.991
+>> Accuracy on test set: 0.965
+>> ConvergenceWarning: Stochastic Optimizer: Maximum iterations (200) reached and the optimization hasn't converged yet.
+```
+
+* スケール変換でめっちゃよくなった
+* 最後の警告は「繰り返し回数が上限に達したが、最適化が収束していない」とある
+
+```
+mlp = MLPClassifier(max_iter=1000, random_state=0)
+mlp.fit(X_train_scaled,y_train)
+
+print("Accuracy on training set: {:.3f}".format(mlp.score(X_train_scaled,y_train)))
+print("Accuracy on ttestraining set: {:.3f}".format(mlp.score(X_test_scaled,y_test)))
+
+>> Accuracy on training set: 1.000
+>> Accuracy on ttestraining set: 0.972
+```
+
+* 繰り返し回数を増やすと、訓練セットに対する効果は上がったが、汎化性能は上がっていない（って本に書いてあるけどちょっと上がってる）
+* 次にalphaパラメータを0.0001から1にあげて重みに関して正則化を強化してみる
+
+```
+mlp = MLPClassifier(max_iter=1000,alpha=1,random_state=0)
+mlp.fit(X_train_scaled,y_train)
+
+print("Accuracy on training set: {:.3f}".format(mlp.score(X_train_scaled,y_train)))
+print("Accuracy on ttestraining set: {:.3f}".format(mlp.score(X_test_scaled,y_test)))
+
+>> Accuracy on training set: 0.988
+>> Accuracy on ttestraining set: 0.972
+```
+
+* こうすると、ベストの性能になった
+    * ※「ベストな性能」は今まで扱ったどのモデルでも0.972になっている（ほんと？）
+    * これは、これらのモデルがまったく同じ数、4つの点のクラス分類を誤っているという事を意味する
+    * これはデータセットが小さいせいかもしれないし、間違う4つのデータポイントが残りのデータポイントからかけ離れているせいかもしれない
+
+
+* ニューラルネットワークが学習した内容を解析する事はできる
+* そのうちの1つはモデル内部の重みを見ること
+
+```
+plt.figure(figsize=(20,5))
+plt.imshow(mlp.coefs_[0],interpolation='none',cmap='viridis')
+plt.yticks(range(30),cancer.feature_names)
+plt.xlabel("Columns in weight matrix")
+plt.ylabel("Input feature")
+plt.colorbar()
+```
+
+!["MLP"](img/MLP5.png)
+
+* 明るいところが大きな正の値、暗いところが大きな負の値
+* めちゃめちゃ見辛い
+
+
+#### メリットデメリット
+
+* scikit-learnはニューラルネットワークでできることの一部しかカバーしていない
+* 本当に使う場合はkeras , lasagna , tensor-flow とかがいけてるんやで
+* それらはGPUをサポートしていて、これを使うと10〜100倍もはやくなるんや
+* ニューラルネットワーク最大の利点は大量のデータを使って、めちゃくちゃ複雑なモデルを構築できること
+* 十分な計算時間をかけて、データを用意して、パラメータを調整すれば他のアルゴリズムよりめっちゃ強いのができあがることが多い
+* それが逆にデメリットでもある。大きくて強力なものには訓練に時間がかかるし、慎重にデータの前処理が必要
+* SVMと同じく同様にデータが「同質」な場合最もよく機能するが、様々な種類の特徴量を持つデータにたいしては決定木に基づくモデルの方が性能が良い
+
+
+#### ニューラルネットワークの複雑さ推定
+
+* 実際にニューラルネットワークのパラメータを調整する一般的なやり方は
+    * まず過剰適合できるように大きいネットワークを作って、タスクがそのネットワークで訓練データを学習できる事を確認する
+    * 次にネットワークを小さくするか、alphaを増やして正則化を強化して汎化性能をあげていく
