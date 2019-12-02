@@ -1084,3 +1084,126 @@ plt.colorbar()
 * 実際にニューラルネットワークのパラメータを調整する一般的なやり方は
     * まず過剰適合できるように大きいネットワークを作って、タスクがそのネットワークで訓練データを学習できる事を確認する
     * 次にネットワークを小さくするか、alphaを増やして正則化を強化して汎化性能をあげていく
+
+
+### 不確実性推定
+
+* クラス分類機が出力したデータに、どのくらい確かなのか、を出してくれる
+* scikit-learn は decision_function と predict_proba がある
+
+```
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.datasets import make_circles
+X,y = make_circles(noise=0.25,factor=0.5,random_state=1)
+
+# わかりやすく、blue、redにする
+y_named = np.array(["blue","red"])[y]
+
+# train_test_splitは任意の数の配列に適用できる
+# 全ての配列は整合するように分割される
+X_train,X_test,y_train_named,y_test_named, y_train , y_test = train_test_split(X,y_named,y,random_state=0)
+
+# 勾配ブースティングモデルを構築
+gbrt = GradientBoostingClassifier(random_state=0)
+gbrt.fit(X_train,y_train_named)
+
+# 決定関数(Decision Function)の結果は(n_samples,)の形になり、サンプルごとに1つの浮動小数点が返される
+print("X_test.shape: {}".format(X_test.shape))
+print("Decision function shape: {}".format(gbrt.decision_function(X_test).shape))
+
+>> X_test.shape: (25, 2)
+>> Decision function shape: (25,)
+```
+
+* この値にはデータポイントが陽性であると信じている度合いが入っている
+* 正であれば陽性クラスを、負であれば陰性クラスを意味する
+
+
+```
+print("Decision function : \n{}".format(gbrt.decision_function(X_test)[:6]))
+>> Decision function : 
+>> [ 4.13592629 -1.7016989  -3.95106099 -3.62599351  4.28986668  3.66166106]
+```
+
+* 決定関数の符号を見れば、予測クラスがわかる
+
+```
+print("Thresholded dicision function:\n{}".format(gbrt.decision_function(X_test) > 0))
+print("Prediction:\n{}".format(gbrt.predict(X_test)))
+
+>> Thresholded dicision function:
+>> [ True False False False  True  True False  True  True  True False  True
+>>  True False  True False False False  True  True  True  True  True False
+>> False]
+>> Prediction:
+>> ['red' 'blue' 'blue' 'blue' 'red' 'red' 'blue' 'red' 'red' 'red' 'blue'
+>>  'red' 'red' 'blue' 'red' 'blue' 'blue' 'blue' 'red' 'red' 'red' 'red'
+>>  'red' 'blue' 'blue']
+```
+
+```
+# True/False を 0/1 に
+greater_zero = (gbrt.decision_function(X_test) > 0).astype(int)
+# 0/1 を classes_ のインデックスに使う
+pred = gbrt.classes_[greater_zero]
+# pred は gbrt.predict の出力と同じになる
+print("pred is equal to predictions: {}".format(np.all(pred == gbrt.predict(X_test))))
+
+>> pred is equal to predictions: True
+
+```
+
+* pred と prediction が一致している
+* decision_functin のレンジは決まっておらず、データとモデルパラメータに依存する
+
+```
+decision_function = gbrt.decision_function(X_test)
+print("Decision function minimun: {:.2f} maximum: {:.2f}".format(np.min(decision_function),np.max(decision_function)))
+
+>> Decision function minimun: -7.69 maximum: 4.29
+```
+* こんな感じで decition_function の結果はどういうスケールで帰ってくるのかわからんので、解釈が難しい
+
+
+```
+fig, axes = plt.subplots(1,2,figsize=(13,5))
+mglearn.tools.plot_2d_separator(gbrt,X,ax=axes[0],alpha=.4,fill=True,cm=mglearn.cm2)
+scores_image = mglearn.tools.plot_2d_scores(gbrt,X,ax=axes[1],alpha=.4,cm=mglearn.ReBl)
+
+for ax in axes:
+    mglearn.discrete_scatter(X_test[:,0],X_test[:,1],y_test,markers='^',ax=ax)
+    mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train,markers='o',ax=ax)
+    ax.set_xlabel("Feature 0")
+    ax.set_ylabel("Feature 1")
+
+cbar = plt.colorbar(scores_image,ax=axes.tolist())
+axes[0].legend(["Test class 0","Test class 1","Train class 0","Train class 1"],ncol=4,loc=(.1,1.1))
+```
+
+!["MLP"](img/MLP6.png)
+
+* これは、決定境界と2次元平面上の全ての点に対する dicision_function の値で色をつけたもの(確信度の色が反映されている)
+
+### 確率の予測
+
+* predict_proba の出力は dicision_function よりわかりやすい。2クラス分類の場合出力は必ず (n_samples , 2) になる
+
+```
+print("Shape of probabilities: {}".format(gbrt.predict_proba(X_test).shape))
+
+>> Shape of probabilities: (25, 2)
+```
+
+* 第一エントリは第一クラスの予測確率、第二エントリは第二クラスの予測確率
+
+```
+print("predicted probabilities : \n{}".format(gbrt.predict_proba(X_test[:6])))
+
+>> predicted probabilities : 
+[[0.01573626 0.98426374]
+ [0.84575649 0.15424351]
+ [0.98112869 0.01887131]
+ [0.97406775 0.02593225]
+ [0.01352142 0.98647858]
+ [0.02504637 0.97495363]]
+```
