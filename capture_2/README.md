@@ -1207,3 +1207,87 @@ print("predicted probabilities : \n{}".format(gbrt.predict_proba(X_test[:6])))
  [0.01352142 0.98647858]
  [0.02504637 0.97495363]]
 ```
+
+* 2クラスの総和が1になっているので、どちらかが50%以上の確信度になっているはず
+* 出力された確信度が実際のデータポイントとに対する正答率に反映されているかどうかは、モデルやパラメータに依存する
+* 過剰適合している場合は間違っている場合でも高い確信度になる
+* 複雑さが低いモデルは確信度も低くなる
+* 確信度が70%のデータポイントに対して正答率70%で返せるモデルののことを較正されている(carlibrated)という
+
+
+```
+fig , axes = plt.subplots(1,2,figsize=(13,5))
+
+mglearn.tools.plot_2d_separator(
+    gbrt,X,ax=axes[0],alpha=.4,fill=True,cm=mglearn.cm2)
+scores_image = mglearn.tools.plot_2d_scores(
+    gbrt,X,ax=axes[1],alpha=.5,cm=mglearn.ReBl,function='predict_proba')
+
+for ax in axes:
+    mglearn.discrete_scatter(X_test[:,0],X_test[:,1],y_test,markers='^',ax=ax)
+    mglearn.discrete_scatter(X_train[:,0],X_train[:,1],y_train,markers='o',ax=ax)
+    ax.set_xlabel=("Feature 0")
+    ax.set_ylabel=("Feature 1")
+cbar = plt.colorbar(scores_image,ax=axes.tolist())
+axes[0].legend(["Test class 0","Test class 1","Train class 0","Train class 1"],ncol=4,loc=(.1,1.1))
+```
+!["MLP"](img/MLP7.png)
+
+* データセットの決定境界とモデルの確信度の境界
+
+
+### 多クラス分類の不確実性
+
+* predict_probaとdecision_functionは多クラス分類でも適応できる
+
+```
+from sklearn.datasets import load_iris
+
+iris = load_iris()
+X_train,X_test,y_train,y_test =  train_test_split(
+    iris.data,iris.target,random_state=42)
+
+gbrt = GradientBoostingClassifier(learning_rate=0.01,random_state=0)
+gbrt.fit(X_train,y_train)
+
+print("Decision function shape : {}".format(gbrt.decision_function(X_test).shape))
+print("Decision function: \n{}".format(gbrt.decision_function(X_test)[:6,:]))
+
+>> Decision function shape : (38, 3)
+>> Decision function: 
+>> [[-1.9957153   0.04758118 -1.92721297]
+>>  [ 0.0614655  -1.90755689 -1.92793177]
+>>  [-1.99058105 -1.87637856  0.09686741]
+>>  [-1.9957153   0.04758118 -1.92721297]
+>>  [-1.99730166 -0.13469231 -1.20341532]
+>>  [ 0.0614655  -1.90755689 -1.92793177]]
+```
+
+* 多クラス問題の場合は、decision_functionは(n_samples,n_classes)の形をとる
+* 値が大きいとそのクラスの可能性が高く、小さくなると低くなる
+* 一番大きいとこをとって、そのクラスと分類できる
+
+```
+print("Argmax of decision function:\n{}".format(np.argmax(gbrt.decision_function(X_test),axis=1)))
+print("Predictions:\n{}".format(gbrt.predict(X_test)))
+>> Argmax of decision function:
+>> [1 0 2 1 1 0 1 2 1 1 2 0 0 0 0 1 2 1 1 2 0 2 0 2 2 2 2 2 0 0 0 0 1 0 0 2 1 0]
+>> Predictions:
+>> [1 0 2 1 1 0 1 2 1 1 2 0 0 0 0 1 2 1 1 2 0 2 0 2 2 2 2 2 0 0 0 0 1 0 0 2 1 0]
+```
+
+* predict_probaも(n_samples,n_classes)の形になる各クラスになる確率の総和は1になる
+
+```
+print("Predicted probabilities:\n{}".format(gbrt.predict_proba(X_test)[:6]))
+print("Sums : {}".format(gbrt.predict_proba(X_test)[:6].sum(axis=1)))
+
+>> Predicted probabilities:
+>> [[0.10217734 0.78840063 0.10942203]
+>>  [0.7834712  0.1093673  0.1071615 ]
+>>  [0.09818079 0.11005862 0.79176059]
+>>  [0.10217734 0.78840063 0.10942203]
+>>  [0.10360014 0.66723882 0.22916105]
+>>  [0.7834712  0.1093673  0.1071615 ]]
+>> Sums : [1. 1. 1. 1. 1. 1.]
+```
