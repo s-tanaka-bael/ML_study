@@ -1291,3 +1291,55 @@ print("Sums : {}".format(gbrt.predict_proba(X_test)[:6].sum(axis=1)))
 >>  [0.7834712  0.1093673  0.1071615 ]]
 >> Sums : [1. 1. 1. 1. 1. 1.]
 ```
+
+
+```
+print("Argmax of predicted probabilities:\n{}".format(np.argmax(gbrt.predict_proba(X_test),axis=1)))
+print("Predictions:\n{}".format(gbrt.predict(X_test)))
+
+>> Argmax of predicted probabilities:
+>> [1 0 2 1 1 0 1 2 1 1 2 0 0 0 0 1 2 1 1 2 0 2 0 2 2 2 2 2 0 0 0 0 1 0 0 2 1 0]
+>> Predictions:
+>> [1 0 2 1 1 0 1 2 1 1 2 0 0 0 0 1 2 1 1 2 0 2 0 2 2 2 2 2 0 0 0 0 1 0 0 2 1 0]
+```
+
+* そのままの出力は色々あれなので、実際のクラス名（分類名）に変換した方がいい
+* classes_ を使う
+
+```
+from sklearn.linear_model import LogisticRegression
+logreg = LogisticRegression()
+
+named_target = iris.target_names[y_train]
+logreg.fit(X_train,named_target)
+print("unique classes in trading data : {}".format(logreg.classes_))
+print("predictions : {}".format(logreg.predict(X_test)[:10]))
+argmax_dec_func = np.argmax(logreg.decision_function(X_test),axis=1)
+print("argmax of decision function : {}".format(argmax_dec_func[:10]))
+print("argmax combine with classes_ : {}".format(logreg.classes_[argmax_dec_func][:10]))
+
+>> unique classes in trading data : ['setosa' 'versicolor' 'virginica']
+>> predictions : ['versicolor' 'setosa' 'virginica' 'versicolor' 'versicolor' 'setosa' 'versicolor' 'virginica' 'versicolor' 'versicolor']
+>> argmax of decision function : [1 0 2 1 1 0 1 2 1 1]
+>> argmax combine with classes_ : ['versicolor' 'setosa' 'virginica' 'versicolor' 'versicolor' 'setosa' 'versicolor' 'virginica' 'versicolor' 'versicolor']
+
+```
+
+### まとめと展望
+
+* 汎化：新しい見たことのないデータに対してうまく機能するようにモデルを学習すること
+* 適合不足：訓練データに現れている変化をうまく捉えきれていない状態
+* 過剰適合：逆に訓練データに適合しすぎてしまい、新しいデータに汎化できない状態
+
+
+* 最近傍法：小さいデータに関しては良いベースラインとなる。
+* 線形モデル：最初に試してみるべきアルゴリズム。大きいデータセットに適する。高次元のデータに適する
+* ナイーブベイズ：クラス分類にしか使えない。線形モデルよりさらに高速。大きいデータ、高次元データに適する。線形モデルより精度が劣ることが多い
+* 決定木：非常に高速。データのスケールを考慮する必要がない。可視化が可能で説明しやすい。
+* ランダムフォレスト：多くの場合、決定木より高速で、頑健で、強力。データのスケールを考慮する必要がない。高次元の疎なデータには適さない。
+* 勾配ブースティング決定木：ランダムフォレストより少し制度が高い。ランダムフォレストより訓練に時間がかかるが、予測はこちらの方が早く、メモリ使用量も小さい。ランダムフォレストよりパラメータに敏感。
+* サポートベクタマシン：同じような意味を持つ特徴量からなる中規模なデータセットに対しては強力。データのスケールを調整する必要がある。パラメータに敏感。
+
+* ニューラルネットワーク：非常に複雑なモデルを構築できる。特に大きいデータセットに有効。データのスケールを調整する必要がある。パラメータに敏感。大きいモデルは構築に時間がかかる。
+
+
