@@ -127,3 +127,21 @@ hoge
 >> [{'A': 10}, {'A': 2}]
 ```
 
+### グリッドサーチしてみた
+
+```
+# グリッドサーチしてみる
+params = {
+    "n_estimators":[i for i in range(10,100,10)],
+    "criterion":["gini","entropy"],
+    "max_depth":[i for i in range(1,6,1)],
+    'min_samples_split': [2, 4, 10,12,16],
+    "random_state":[3],
+}
+
+clf = GridSearchCV(RandomForestClassifier(), params,cv=5,n_jobs=-1)
+clf_fit=clf.fit(X_train, y_train)
+```
+
+これで78までいった
+
