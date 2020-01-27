@@ -1,0 +1,211 @@
+# 教師なし学習と前処理
+
+教師なし学習ではアルゴリズムには入力データだけ与えられ、そこから知識を抽出する事が要求される。
+
+
+## 教師なし学習の種類
+
+* データセットの変換
+
+    * データセットの教師なし変換(Unsupervised transformations)
+
+        元のデータ表現を変換して人間や他の機械学習アルゴにとって、わかりやすい新しいデータ表現を作るアルゴ
+
+        #### 最も一般的な利用法は次元削減である
+
+        他には、データを「構成する」部品、成分を見つける事。
+
+        #### 例えば、文章データからトピックを抽出する
+
+* クラスタリング
+
+    * クラスタリングアルゴリズム(Clustering algorithms)
+
+        データを似たような要素から構成されるグループに分けるアルゴリズム
+
+        #### 例えば、SNSサイトにアップされた写真の中から同じ人を抽出する
+
+の2つがある。
+
+## 教師なし学習の難しさ
+
+アルゴリズムが学習したことの有用性の評価。結果を人間が確かめるしかない場合とか。
+
+なので、教師あり学習の前処理ステップとして利用する事があったりする。
+
+
+## 前処理とスケール変換
+
+教師あり学習では、ニューラルネットワークやVMなどのアルゴはデータのスケール変換が重要って話があった。
+
+よく使われるのは、特徴量ごとにスケールを変換してずらす方法
+
+
+```
+mglearn.plots.plot_scaling()
+```
+
+!["sample"](img/sample.png)
+
+
+scikit-learnに
+
+* StandardScaler
+* RobustScaler
+* MinMaxScaler
+* Normalizer
+
+とかがある。
+
+
+## データ変換やってみる
+
+
+```
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+cancer = load_breast_cancer()
+
+X_train , X_test , y_train , y_test = train_test_split(cancer.data,cancer.target , random_state=1)
+
+print(X_train.shape)
+print(X_test.shape)
+
+>> (426, 30)
+>> (143, 30)
+``` 
+
+教師なし学習なんだけど、前処理した後に構築する教師ありモデルを評価するために訓練セットとテストセットに分けてる
+
+```
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+scaler.fit(X_train)
+
+>> MinMaxScaler(copy=True, feature_range=(0, 1))
+```
+
+fitメソッドを訓練データに適合させる。MinMaxScalerのfitメソッドはデータの各特徴量の最小値と最大値を計算する。教師ありのクラス分類とは違って、X_trainのみで教師データは用いない
+
+学習した変換を実際に適応する(スケール変換する)にはスケール変換器の transform メソッドを用いる。
+
+
+```
+X_train_scaled = scaler.transform(X_train)
+
+print("transformed shape : {}".format(X_train_scaled.shape))
+print("pre-freature minimum before scaling:\n {}".format(X_train.min(axis=0)))
+print("pre-freature maximum before scaling:\n {}".format(X_train.max(axis=0)))
+print("pre-freature minimum after scaling:\n {}".format(X_train_scaled.min(axis=0)))
+print("pre-freature maximum before scaling:\n {}".format(X_train_scaled.max(axis=0)))
+
+>> transformed shape : (426, 30)
+>> pre-freature minimum before scaling:
+>>  [6.981e+00 9.710e+00 4.379e+01 1.435e+02 5.263e-02 1.938e-02 0.000e+00
+>>  0.000e+00 1.060e-01 5.024e-02 1.153e-01 3.602e-01 7.570e-01 6.802e+00
+>>  1.713e-03 2.252e-03 0.000e+00 0.000e+00 9.539e-03 8.948e-04 7.930e+00
+>>  1.202e+01 5.041e+01 1.852e+02 7.117e-02 2.729e-02 0.000e+00 0.000e+00
+>>  1.566e-01 5.521e-02]
+>> pre-freature maximum before scaling:
+>>  [2.811e+01 3.928e+01 1.885e+02 2.501e+03 1.634e-01 2.867e-01 4.268e-01
+>>  2.012e-01 3.040e-01 9.575e-02 2.873e+00 4.885e+00 2.198e+01 5.422e+02
+>>  3.113e-02 1.354e-01 3.960e-01 5.279e-02 6.146e-02 2.984e-02 3.604e+01
+>>  4.954e+01 2.512e+02 4.254e+03 2.226e-01 9.379e-01 1.170e+00 2.910e-01
+>>  5.774e-01 1.486e-01]
+>> pre-freature minimum after scaling:
+>>  [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+>>  0. 0. 0. 0. 0. 0.]
+>> pre-freature maximum before scaling:
+>>  [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+>>  1. 1. 1. 1. 1. 1.]
+
+```
+
+変換されたデータの配列は元の形と同じだけど、特徴量がシフトされて0と1になっている。
+
+同じく、X_testにも適応してやる。
+
+```
+X_test_scaled = scaler.transform(X_test)
+
+print("pre-feature minimum after scaling:\n {}".format(X_test_scaled.min(axis=0)))
+print("pre-feature maximum after scaling:\n {}".format(X_test_scaled.max(axis=0)))
+
+>> pre-feature minimum after scaling:
+>>  [ 0.0336031   0.0226581   0.03144219  0.01141039  0.14128374  0.04406704
+>>   0.          0.          0.1540404  -0.00615249 -0.00137796  0.00594501
+>>   0.00430665  0.00079567  0.03919502  0.0112206   0.          0.
+>>  -0.03191387  0.00664013  0.02660975  0.05810235  0.02031974  0.00943767
+>>   0.1094235   0.02637792  0.          0.         -0.00023764 -0.00182032]
+>> pre-feature maximum after scaling:
+>>  [0.9578778  0.81501522 0.95577362 0.89353128 0.81132075 1.21958701
+>>  0.87956888 0.9333996  0.93232323 1.0371347  0.42669616 0.49765736
+>>  0.44117231 0.28371044 0.48703131 0.73863671 0.76717172 0.62928585
+>>  1.33685792 0.39057253 0.89612238 0.79317697 0.84859804 0.74488793
+>>  0.9154725  1.13188961 1.07008547 0.92371134 1.20532319 1.63068851]
+
+```
+
+テストデータの方は、スケール変換後の最小と最大の値が0と1になっていない！特徴量によっては1をはみ出ている。
+
+これは、MinMaxScalerが訓練データとテストデータに全く同じ変換を施すから。transformメソッドは訓練データの最小値と最大値を引き継ぎ、訓練データのレンジで割るからだ。
+
+
+## 訓練データとテストデータを同じように変換する
+
+テストセットを訓練セットと全く同じスケールで変換するのはめちゃくちゃ重要。
+
+試しに、テストセットの最小値とレンジを使うと何が起こるかを示す。
+
+```
+from sklearn.datasets import make_blobs
+# 合成データを作成
+X, _ = make_blobs(n_samples=50,centers=5,random_state=4,cluster_std=2)
+
+# 訓練セットとテストセットをプロット
+X_train , X_test = train_test_split(X,random_state=5,test_size=.1)
+
+fig,axes = plt.subplots(1,3,figsize=(13,4))
+axes[0].scatter(X_train[:,0],X_train[:,1],c=mglearn.cm2(0),label="Training set",s=60)
+axes[0].scatter(X_test[:,0],X_test[:,1],marker="^",c=mglearn.cm2(1),label="Test set",s=60)
+axes[0].legend(loc="upper left")
+axes[0].set_title("Original Data")
+
+# MinMaxScalerでデータ変換
+scaler = MinMaxScaler()
+scaler.fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# スケール変換されたデータの特性を可視化
+axes[1].scatter(X_train_scaled[:,0],X_train_scaled[:,1],c=mglearn.cm2(0),label="Training set", s=60)
+axes[1].scatter(X_test_scaled[:,0],X_test_scaled[:,1],marker="^",c=mglearn.cm2(1),label="Test set", s=60)
+axes[1].set_title("Scaled Data")
+
+# テストセットを訓練セットとは別にスケール変換
+# 最小値と最大値が0,1になる。ここではわざとやっているが、「実際にはやってはいけない！」
+test_scaler = MinMaxScaler()
+test_scaler.fit(X_test)
+X_test_scaled_badly = test_scaler.transform(X_test)
+
+# ダメなスケール変換を可視化
+axes[2].scatter(X_train_scaled[:,0],X_train_scaled[:,1],c=mglearn.cm2(0),label="Training set", s=60)
+axes[2].scatter(X_test_scaled[:,0],X_test_scaled[:,1],marker="^",c=mglearn.cm2(1),label="Test set", s=60)
+axes[2].set_title("Improperly Scaled Data")
+
+for ax in axes:
+    ax.set_xlabel("Feature 0")
+    ax.set_ylabel("Feature 1")
+
+```
+
+
+!["sample2"](img/sample2.png)
+
+一番左は何もいじってないやつ。スケール変換されていないので値の範囲がバラついている。
+
+真ん中が訓練データベースでスケールされたもの。
+
+一番右がダメなやつで、訓練データとテストデータが別々のスケールで変換されている。あかんやつ！
+
+.
