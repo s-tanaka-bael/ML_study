@@ -208,4 +208,65 @@ for ax in axes:
 
 一番右がダメなやつで、訓練データとテストデータが別々のスケールで変換されている。あかんやつ！
 
+
+
+## 教師あり学習における前処理の結果
+
+```
+from sklearn.svm import SVC
+
+X_train,X_test,y_train,y_test = train_test_split(cancer.data,cancer.target,random_state=0)
+
+svm = SVC(C=100)
+svm.fit(X_train,y_train)
+print("Test set accuracy : {:.2f}".format(svm.score(X_test,y_test)))
+
+>> Test set accuracy : 0.63
+```
+63%くらいの精度
+
+```
+# 0-1スケール変換で前処理
+scaler = MinMaxScaler()
+scaler.fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 変換された訓練データで学習さす
+svm.fit(X_train_scaled,y_train)
+
+print("Scaled set accuracy : {:.2f}".format(svm.score(X_test_scaled,y_test)))
+
+>> Scaled set accuracy : 0.97
+```
+
+めっちゃアガる
+
+```
+# 平均を0に分散を1に前処理
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaler.fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+svm.fit(X_train_scaled,y_train)
+
+print("SVM test accuracy: {:.2f}".format(svm.score(X_test_scaled,y_test)))
+
+>> SVM test accuracy: 0.96
+```
+
+Standard Scalerでもめっちゃアガる
+
+
+## 次元削減、特徴量抽出、多様体学習
+
+教師なし学習のデータ変換の一般的な動機は、可視化、データの圧縮、以降の処理に適した表現の発見(いみわからん)
+
+それらに最もよく使われるアルゴリズムが主成分分析(pricinpal component analysys : PCA)
+
+主成分分析の他に、非負値行列因子分解(non-negative matrix factorization : NMF)と二次元散布図を用いたデータ可視化によく用いられる t-SNE がある。
+
+
 .
