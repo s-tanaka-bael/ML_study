@@ -269,4 +269,110 @@ Standard Scalerでもめっちゃアガる
 主成分分析の他に、非負値行列因子分解(non-negative matrix factorization : NMF)と二次元散布図を用いたデータ可視化によく用いられる t-SNE がある。
 
 
+### 主成分分析(PCA)
+
+主成分分析とは、データセットの特徴量を相互に統計的に関連しないように回転する手法。
+
+多くの場合、回転したあとの特徴量からデータを説明するのに重要な一部の特徴量だけを抜き出す。
+
+
+!["pca"](img/pca.png)
+
+137pあたりに説明があるが、全く意味がわからん。
+
+#### cancerデータセットのPCAによる可視化
+
+cancerデータは特徴量が30もあるので、たいへん。ちゃんとやると、30×29/2=435の散布図ができてしまうし、理解なんてできない。
+
+なので、特徴量ごとに良性か悪性の2つのクラスのヒストグラムを書く。
+
+```
+fig, axes = plt.subplots(15,2,figsize=(10,20))
+malignant = cancer.data[cancer.target == 0]
+benign = cancer.data[cancer.target == 1]
+
+ax = axes.ravel()
+
+for i in range(30):
+    _, bins = np.histogram(cancer.data[:,i],bins=50)
+    ax[i].hist(malignant[:,i],bins=bins,color=mglearn.cm3(0),alpha=.5)
+    ax[i].hist(benign[:,i],bins=bins,color=mglearn.cm3(2),alpha=.5)
+    ax[i].set_title(cancer.feature_names[i])
+    ax[i].set_yticks(())
+
+ax[0].set_xlabel("Feature magnitude")
+ax[0].set_ylabel("Frequency")
+ax[0].legend(["malignant","benign"],loc="best")
+fig.tight_layout()
+
+```
+
+
+!["pca"](img/pca2.png)
+
+個々のデータポイントの特徴量が特定のレンジ(ビンと呼ぶ)に何回入ったか数えることで特徴量ごとにヒストグラムを作っている。
+
+malignant：悪性(青)
+
+benign：良性(緑)
+
+のデータがそれぞれどういう分布になっているかがよくわかる。(これによって、どの特徴量が良性と悪性を見分けるのに使えそうかわかる)
+
+例えば「smoothness error」とかは値が被っていて使えなさそうなのがわかる。逆に「worst concave points」はほとんど重なっていないので良さげ。
+
+しかしこれを見てもここの特徴量の相関やそれがクラス分類に与える影響についてはわからない（わからんの？）、そこでPCAの出番。
+
+PCAると、主な相関を捉える事ができるのでもう少し全体像が見やすくなる。
+
+
+```
+from sklearn.datasets import load_breast_cancer
+cancer = load_breast_cancer()
+
+scaler = StandardScaler()
+scaler.fit(cancer.data)
+X_test_scaled = scaler.transform(cancer.data)
+```
+
+PCAを用いる前に、StandardScalerでスケール変換して、個々の特徴量の分散が1になるようにする。
+
+PCA変換の学習と適用は前処理と同じように簡単にできる。PCAオブジェクト作って、fitしてtransformするだけ。これで回転と次元削減を行ってくれる。
+
+デフォルトだとデータの回転とシフトしか行わず、全ての主成分を維持する。データの次元削減を行うにはPCAオブジェクトを作る際に、維持する主成分の数を指定する必要がある
+
+```
+from sklearn.decomposition import PCA
+
+# データの最初の2つの主成分だけ維持する
+pca = PCA(n_components=2)
+# cancerデータにPCAモデルを適合
+pca.fit(X_scaled)
+
+# 最初の2つの主成分に対してデータポイントを変換
+x_pca = pca.transform(X_scaled)
+print("Origin shape: {}".format(str(X_scaled.shape)))
+print("Reduced shape: {}".format(str(x_pca.shape)))
+
+>> Origin shape: (569, 30)
+>> Reduced shape: (569, 2)
+```
+
+```
+# 第一主成分と第二主成分のプロット、クラスごとに色分け
+plt.figure(figsize=(8,8))
+mglearn.discrete_scatter(x_pca[:,0],x_pca[:,1],cancer.target)
+plt.legend(cancer.target_names,loc="best")
+plt.gca().set_aspect("equal")
+plt.xlabel("First principal component")
+plt.ylabel("Second principal component")
+```
+
+!["pca"](img/pca3.png)
+
+これはつまり、第一主成分に対して第二主成分をクラス情報を使って相関をプロットしたの図。
+
+教師なしなんだけど、結構いい感じに別れている。悪性のデータポイントは良性に比べて広範囲に分布しているのもわかる。
+
+
+
 .
