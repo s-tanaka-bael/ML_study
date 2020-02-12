@@ -468,7 +468,7 @@ from sklearn.neighbors import KNeighborsClassifier
 
 X_train , X_test , y_train , y_test = train_test_split(X_people,y_people,stratify=y_people,random_state=0)
 
-#KNeighborsClassifierを1-最近傍法で構築
+# KNeighborsClassifierを1-最近傍法で構築
 knn = KNeighborsClassifier(n_neighbors=1)
 knn.fit(X_train,y_train)
 print("Test set score of 1-nn: {:.2f}".format(knn.score(X_test,y_test)))
@@ -478,6 +478,65 @@ print("Test set score of 1-nn: {:.2f}".format(knn.score(X_test,y_test)))
 ```
 
 精度が低い！
+
+ただこれは62クラス分類なので、そこまで悪くはない（ランダムに選択したら 1/62=1.5%）
+
+4回に1回しか当たらない程度の精度ではあるが。
+
+そこでPCAの出番
+
+元のピクセルの空間で距離を系さんするのは顔の近似値を測るのは全く適していない。ピクセル表現で2つの画像を比較するということは、相互の画像の対応するピクセルの値を比較する事になる。例えば同じ画像でも1ピクセルずらすだけで全く違うデータになってしまうから。
+
+主成分に沿った距離を使うことで精度が上げれないか試してみよう。ここではPCAのwhitenオプションを使う。これを使うと主成分が同じスケールになるようにスケール変換する。
+
+PCA変換後にStandardScalerをかけるのと同じ。whitenオプションをつけると、データを回転するだけでなく楕円ではなく円を描くようにスケール変換することになる。
+
+!["pca"](img/pca5.png)
+
+イメージはこんな↑感じ
+
+PCAオブジェクトを訓練して最初の100主成分を抜き出す。そのあと訓練データとテストデータを変換する
+
+```
+pca = PCA(n_components=100,whiten=True,random_state=0).fit(X_train)
+X_train_pca = pca.transform(X_train)
+X_test_pca = pca.transform(X_test)
+
+print("X_train_pca.shape : {}".format(X_train_pca.shape))
+
+>> X_train_pca.shape : (1547, 100)
+
+```
+
+新しいデータは100の特徴量を持つ。主成分の最初の100要素。これを使って1-最近傍法クラス分類器にかけてみる。
+
+
+```
+knn = KNeighborsClassifier(n_neighbors=1)
+knn.fit(X_train_pca,y_train)
+print("Test set accuracy: {:.2f}".format(knn.score(X_test_pca,y_test)))
+
+>> Test set accuracy: 0.31
+```
+
+10%くらい上がった。
+
+画像データは見つけた主成分を簡単に可視化できる。
+
+```
+print("pca.components_.shape : {}".format(pca.components_.shape))
+
+>> pca.components_.shape : (100, 5655)
+
+fix, axes = plt.subplots(3,5,figsize=(15,12),subplot_kw={'xticks': (),'yticks' : ()})
+for i , (component , ax) in enumerate(zip(pca.components_,axes.ravel())):
+    ax.imshow(component.reshape(image_shape),cmap='viridis')
+    ax.set_title("{}. component".format((i+1)))
+```
+
+!["pca"](img/pca6.png)
+
+
 
 
 
