@@ -672,4 +672,58 @@ for model , name ,ax in zip(models,names,axes):
 NMFのほう、いい感じに復元できているっぽい！
 
 
+### t-SNEを用いた多様体学習
+
+データを変換して散布図で可視化したい時に、まずPCAを試してみるのは悪くないけど、その性質上有用性は限られる。
+
+これに対して可視化によく用いられるのが、多様体学習アルゴリズム(manifold learning algorithms)と呼ばれる一連のアルゴリズム。特に有用なのがt-SNEアルゴリズムである。
+
+多様体学習アルゴリズムは主に可視化に用いられ、ほとんどの場合3以上の新しい特徴量を生成するように利用する事はない。
+
+また、多様体学習アルゴリズムの一部(t-SNEを含む)は訓練データの新たな表現を計算するが、新しいデータを変換する事はできない、つまりテストセットにこのアルゴリズムを適用することはできない。(訓練セットにしか使えない)
+
+多様体学習アルゴリズムは探索的なデータ解析には有効だが、最終的な目標が教師あり学習の場合にはほとんど使われない。
+
+t-SNEはデータポイントの距離を可能な限り維持する2次元表現を見つけようとする。
+
+まず最初に、ランダムは2次元表現を作り、そこから元の特徴空間で近いデータポイントを近くに、遠いポイントは遠くに廃止する。つまり、どの点が近傍か示す情報を維持しようとする。
+
+手書きデータセットに適用してみる。
+
+```
+from sklearn.datasets import load_digits
+digits = load_digits()
+
+fig, axes = plt.subplots(2,5,figsize=(10,5),subplot_kw={'xticks':(),'yticks':()})
+for ax , img in zip(axes.ravel(),digits.images):
+    ax.imshow(img)
+```
+
+!["t-sne"](img/t-sne.png)
+
+PCAを使って主成分を可視化してみる
+
+```
+# PCAモデル構築
+pca = PCA(n_components=2)
+pca.fit(digits.data)
+# 数値データを最初の2主成分で変形
+digits_pca = pca.transform(digits.data)
+colors = ["#476A2A","#7851B8","#BD3430","#4A2D4E","#875525","#A83683","#4E655E","#853541","#3A3120","#535D8E"]
+plt.figure(figsize=(10,10))
+plt.xlim(digits_pca[:,0].min(),digits_pca[:,0].max())
+plt.ylim(digits_pca[:,1].min(),digits_pca[:,1].max())
+for i in range(len(digits.data)):
+    # 散布図を数字でプロット
+    plt.text(digits_pca[i,0],digits_pca[i,1],str(digits.target[i]),color=colors[digits.target[i]],fontdict={'weight':'bold','size':9})
+plt.xlabel("First pricipal component")
+plt.ylabel("Second pricipal component")
+```
+
+!["t-sne"](img/t-sne2.png)
+
+
+
+
+
 .
