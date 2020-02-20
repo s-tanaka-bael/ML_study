@@ -723,7 +723,28 @@ plt.ylabel("Second pricipal component")
 !["t-sne"](img/t-sne2.png)
 
 
+0と6と4とかは結構分類できてるけど、それ以外は結構重なってしまっている。
+
+t-SNEを試してみる。
 
 
+```
+from sklearn.manifold import TSNE
+tsne = TSNE(random_state=42)
+# fitではなく、fit_transformを用いる。TSNEにはtransformメソッドはない
+digits_tsne = tsne.fit_transform(digits.data)
+
+plt.figure(figsize=(10,10))
+plt.xlim(digits_tsne[:,0].min(),digits_tsne[:,0].max())
+plt.ylim(digits_tsne[:,1].min(),digits_tsne[:,1].max())
+for i in range(len(digits.data)):
+    # 散布図を数字でプロット
+    plt.text(digits_tsne[i,0],digits_tsne[i,1],str(digits.target[i]),color=colors[digits.target[i]],fontdict={'weight':'bold','size':9})
+plt.xlabel("t-SNE feature 0")
+plt.ylabel("t-SNE feature 1")
+```
+!["t-sne"](img/t-sne3.png)
+
+めちゃくちゃ綺麗に分類されとる！
 
 .
