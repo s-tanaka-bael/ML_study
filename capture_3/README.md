@@ -537,7 +537,139 @@ for i , (component , ax) in enumerate(zip(pca.components_,axes.ravel())):
 !["pca"](img/pca6.png)
 
 
+```
+mglearn.plots.plot_pca_faces(X_train,X_test,image_shape)
+```
 
+!["pca"](img/pca7.png)
+
+主成分が増えるほど解像度はあがっていくのがわかる。
+
+```
+mglearn.discrete_scatter(X_train_pca[:,0],X_train_pca[:,1],y_train)
+plt.xlabel("First principal component")
+plt.ylabel("Second principal component")
+```
+
+!["pca"](img/pca8.png)
+
+顔画像データの散布図。cancerのデータと比べて密集していて分類できなそうなのがわかる。
+
+
+### 非負値行列因子分解(NMF)
+
+非負値行列因子分解(Non-negative matrix factorization : NMF)も有用な特徴量を抽出する事を目的とした教師無し学習方法。
+
+PCAと似ており、やはり次元削減に用いることができる。
+
+NMFの説明が延々書いてあったけど1ミリもわからん。
+
+
+#### NMFの顔画像への適用
+
+!["nmf"](img/nmf.png)
+
+NMFの方がちょっと悪いらしい。(全然違いわからん)
+
+```
+from sklearn.decomposition import NMF
+nmf = NMF(n_components=15,random_state=0)
+nmf.fit(X_train)
+X_train_nmf = nmf.transform(X_train)
+X_test_nmf = nmf.transform(X_test)
+
+fix,axes = plt.subplots(3,5,figsize=(15,12),subplot_kw={'xticks':(),'yticks':()})
+for i,(component,ax) in enumerate(zip(nmf.components_,axes.ravel())):
+    ax.imshow(component.reshape(image_shape))
+    ax.set_title("{}. component".format(i))
+```
+
+!["nmf"](img/nmf2.png)
+
+なんやこれ
+
+```
+compn = 8
+# 8個目(左向いてるっぽいやつ)の成分でソート、最初の10画像を表示
+
+inds = np.argsort(X_train_nmf[:,compn])[::-1]
+fig,axes = plt.subplots(2,5,figsize=(15,8),subplot_kw={'xticks':(),'yticks':()})
+for i , (ind,ax) in enumerate(zip(inds,axes.ravel())):
+    ax.imshow(X_train[ind].reshape(image_shape))
+
+compn = 11
+# 11個目(右むいてるっぽいやつ)
+inds = np.argsort(X_train_nmf[:,compn])[::-1]
+fig,axes = plt.subplots(2,5,figsize=(15,8),subplot_kw={'xticks':(),'yticks':()})
+for i , (ind,ax) in enumerate(zip(inds,axes.ravel())):
+    ax.imshow(X_train[ind].reshape(image_shape))
+```
+
+左向いとるっぽい
+
+!["nmf"](img/nmf3.png)
+
+右向いとるっぽい
+
+!["nmf"](img/nmf4.png)
+
+
+--- 
+
+例えばこんな風に3つの波形が混合されたデータがあるとして
+
+```
+S = mglearn.datasets.make_signals()
+plt.figure(figsize=(6,1))
+plt.plot(S,'-')
+plt.xlabel("Time")
+plt.ylabel("Signal")
+```
+
+
+!["nmf"](img/nmf5.png)
+
+
+```
+# データを混ぜて100次元の状態を作る
+A = np.random.RandomState(0).uniform(size=(100,3))
+X = np.dot(S,A.T)
+print("Shape of measurements: {}".format(X.shape))
+
+>> Shape of measurements: (2000, 100)
+```
+
+NMFを用いて3つの信号を復元することができる。まじか
+
+```
+nmf = NMF(n_components=3,random_state=42)
+S_ = nmf.fit_transform(X)
+print("Recoverd signal shape: {}".format(S_.shape))
+
+>> Recoverd signal shape: (2000, 3)
+```
+
+比較のためにPCAもやっておく
+
+```
+pca = PCA(n_components=3)
+H = pca.fit_transform(X)
+```
+
+```
+models = [X,S,S_,H]
+names = ['Observations (first three measurements','True sources','NMF recoverd signals','PCA recoverd signals']
+
+fig , axes = plt.subplots(4,figsize=(8,4),gridspec_kw={'hspace':.5},subplot_kw={'xticks':(),'yticks':()})
+
+for model , name ,ax in zip(models,names,axes):
+    ax.set_title(name)
+    ax.plot(model[:,:3],'-')
+```
+
+!["nmf"](img/nmf6.png)
+
+NMFのほう、いい感じに復元できているっぽい！
 
 
 .
