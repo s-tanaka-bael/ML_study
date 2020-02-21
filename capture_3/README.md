@@ -747,4 +747,78 @@ plt.ylabel("t-SNE feature 1")
 
 めちゃくちゃ綺麗に分類されとる！
 
+t-SNEにはパラメータがいくつかあるが、大抵そのままでいい。
+
+
+## クラスタリング
+
+クラスタリングとはデータセットを「クラスタ」と呼ばれるグループに分割するタスク。
+
+個々のデータポイントにその点が属するクラスタを表す数字を割り当てる(予測する)
+
+
+### k-meansクラスタリング
+
+最も単純で広く用いられるクラスタリングアルゴリズム。
+
+データ領域を代表するようなクラスタ重心を見つけようとする。
+
+個々のデータを最寄りのクラスタ重心に割り当てる→個々のクラスタ重心をその点に割り当てられたデータポイントの平均に設定する、を未割り当てのデータポイントが無くなるまで繰り返す。
+
+
+!["k-means"](img/k-means.png)
+
+
+データポイントを丸、クラスタ重心を三角で表している。
+
+```
+from sklearn.datasets import make_blobs
+from sklearn.cluster import KMeans
+
+# 合成2次元データを作る
+X,y = make_blobs(random_state=1)
+
+# クラスタリングモデルを作る
+kmeans = KMeans(n_clusters=3)
+kmeans.fit(X)
+
+print("Cluster memberships: \n{}".format(kmeans.labels_))
+
+>> Cluster memberships: 
+>> [0 1 1 1 2 2 2 1 0 0 1 1 2 0 2 2 2 0 1 1 2 1 2 0 1 2 2 0 0 2 0 0 2 0 1 2 1
+>> 1 1 2 2 1 0 1 1 2 0 0 0 0 1 2 2 2 0 2 1 1 0 0 1 2 2 1 1 2 0 2 0 1 1 1 2 0
+>> 0 1 2 2 0 1 0 1 1 2 0 0 0 0 1 0 2 0 0 1 1 2 2 0 2 0]
+
+mglearn.discrete_scatter(X[:,0],X[:,1],kmeans.labels_ , markers='o')
+mglearn.discrete_scatter(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1],[0,1,2],markers='^',markeredgewidth=2)
+
+```
+
+!["k-means"](img/k-means2.png)
+
+n_clustersをいじってやればクラスタ数を変えることもできる。
+
+
+#### k-meansがうまくいかない場合
+
+データセットに対して、「正しい」クラスタの数がわかっていたとしても、k-meansがそれをうまく見つけられるとは限らない。
+
+k-meansでは比較的単純な形しか見つけられない。
+
+```
+X_varied,y_varied = make_blobs(n_samples=200,cluster_std=[1.0,2.5,0.5],random_state=170)
+y_pred = KMeans(n_clusters=3,random_state=0).fit_predict(X_varied)
+
+mglearn.discrete_scatter(X_varied[:,0],X_varied[:,1],y_pred)
+plt.legend(["cluster 0","cluster 1","cluster 2"],loc='best')
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+
+!["k-means"](img/k-means3.png)
+
+こんな感じになっちゃうことがある。真ん中下あたりの3つのクラスタにやつとかが接近してるとことか？
+
+
+
 .
