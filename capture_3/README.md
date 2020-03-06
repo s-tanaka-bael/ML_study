@@ -819,6 +819,106 @@ plt.ylabel("Feature 1")
 
 こんな感じになっちゃうことがある。真ん中下あたりの3つのクラスタにやつとかが接近してるとことか？
 
+あとk-meansは丸くないクラスタには向かない(センターからの距離でみるから)
+
+```
+# ランダムにクラスタデータを作成
+X,y = make_blobs(random_state=170,n_samples=600)
+rng = np.random.RandomState(74)
+
+# 対角線方向に引き延ばす
+transformation = rng.normal(size=(2,2))
+X = np.dot(X,transformation)
+
+# データポイントを3つにクラスタリング
+kmeans = KMeans(n_clusters=3)
+kmeans.fit(X)
+y_pred = kmeans.predict(X)
+
+# クラスタ割り当てとクラスタセンターをプロット
+plt.scatter(X[:,0],X[:,1],c=y_pred,cmap=mglearn.cm3)
+plt.scatter(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1],marker='^',c=[0,1,2],s=100,linewidths=2,cmap=mglearn.cm3)
+plt.xlabel("Feature0")
+plt.ylabel("Feature1")
+```
+
+!["k-means"](img/k-means4.png)
+
+#### ベクトル量子化、成分分解としてのk-means
+
+k-meansはクラスタリングアルゴリズムだが、PCAやNMFなどの成分分解手法と類似性がある。
+
+PCAはデータ中の最も分散が大きい方向群を見つけようとし、NMFは足し込んでいくことができる成分を見つけようとしていた。
+
+共通するのは「データの極端な特徴」と「部品」として捉えて、データポイントを複数の成分の和として表現しようとするところ。かつ、ここのデータポイントをクラスタセンターという1つの成分で表現しおうとしているところ。こういうのをベクトル量子化と呼ぶ。
+
+
+(途中だいぶ省略、k-meansのデータポイントの数増やすと表現できる幅が増えるんやで〜みたいな。十分なデータポイントの数を与えれば↑の表とかも表現できなくはない。)
+
+#### 凝集型クラスタリング
+
+凝集型クラスタリング(agglomerative clustering) とは。個々のデータポイントをそれぞれ個別のクラスタとして開始し、最も類似した2つのクラスタを併合していく。これを終了条件を満たすまで繰り返す。
+
+「最も類似したクラスタ」を決定する連結(linkage)度には様々なものがある。この連結度は常に2つの既存クラスタ間に定義され、scikit-learnには3つ定義されている。
+
+- ward：デフォルト。併合した際にクラスタないの分散の増分が最小になるように2つのクラスタを選択する。多くの場合比較的同じサイズのクラスタになる。
+
+- average：クラスタ内のすべたのポイント間の距離の平均値が最小の2クラスタを併合する
+
+- complete：最大連結度とも呼ばれる。2ツノクラスタの点間の距離の最大値が最小値となるものを併合する
+
+wardはほとんどのデータセットでうまくいく。クラスタによってデータポイントの数が極端に違う場合はaverageとかcompleteの方がいいかも。
+
+```
+mglearn.plots.plot_agglomerative_algorithm()
+```
+
+!["agg"](img/agg.png)
+
+↑の図は2次元データセットに対して3クラスタに分ける過程を示したもの。
+
+最初はそれぞれのポイントがクラスタになっている。ステップごとに最も近い2点がクラスタになっている。
+
+全てのポイントが3つのクラスタに分類された(終了条件)のでアルゴリズムはここで停止している。
+
+
+#### 階層型クラスタリングとデンドログラム
+
+凝集型クラスタリングを行うと階層型クラスタリング(hierarchical clustering)が行われる。
+
+全ての点は1点しか含まれていないクラスタから最後のクラスタのいずれかに向かっていく。
+
+多次元データを可視化するにはデンドログラム(dendrogram)と呼ばれる方法を使う。ただしscikit-learnは描画をサポートしていないのでSciPyを使う。
+
+SciPyはデータ配列Xを取り、連結性配列(linkage array)を計算する関数を提供する。連結性配列には階層的なクラスタの類似度がエンコードされていて、この連結性配列をSciPyのdendrogram関数に与えるとデンドログラムが描画される。
+
+```
+# SciPyからデンドログラム関数とwardクラスタリング関数をインポート
+from scipy.cluster.hierarchy import dendrogram,ward
+
+X,y = make_blobs(random_state=0,n_samples=12)
+# wardクラスタリングをデータ配列Xに適用
+# SciPyのward関数は凝集型クラスタリングを行った際のブリッジ距離を示す配列を返す
+linkage_array = ward(X)
+# このlinkage_arrayに入っているクラスタ間距離をデンドログラムとしてプロットする
+dendrogram(linkage_array)
+
+# 2つのクラスタと3クラスタの部分での切断を表示する
+ax = plt.gca()
+bounds = ax.get_xbound()
+ax.plot(bounds,[7.25,7.25],'--',c='k')
+ax.plot(bounds,[4,4],'--',c='k')
+
+ax.text(bounds[1],7.25,'two clusters',va='center',fontdict={'size':15})
+ax.text(bounds[1],4,'three clusters',va='center',fontdict={'size':15})
+plt.xlabel("Sample index")
+plt.ylabel("Cluster distance")
+
+
+```
+
+!["dendrogram"](img/dendrogram.png)
+
 
 
 .
