@@ -919,6 +919,81 @@ plt.ylabel("Cluster distance")
 
 !["dendrogram"](img/dendrogram.png)
 
+デンドログラムはデータポイントを一番下の点として表す。
+
+次にこれらのポイントを葉として、2つのクラスタが結合されたものを新しいノードとして木構造をプロットする。
+
+これによってどういう流れで結合されたかがわかりやすくなる。
+
+y軸(縦軸)の長さでそれぞれの要素がどれくらい離れているかがわかるようになっている。
+
+ただ、こいつも複雑な形状はうまく扱うことができない。
+
+
+#### DBSCAN
+
+「density-based spatial clustering of applications with noise(密度に基づくノイズ有り空間クラスタリング)」の略
+
+DBSCANの特徴はユーザーがクラスタ数を先験的に与える必要がないこと。どのクラスタにも属さない点を判別できる事。k-meansより遅いけど、比較的大きいデータセットでも適用できる。
+
+DBSCANは、特徴空間において「混んでいる」領域に属する点を見つける。このような領域は高密度(dense)領域と呼ばれる。
+
+高密度領域の中にあるデータポイントはコアサンプル(コアポイント)と呼ばれ、min_samplesとepsという2つのパラメータで定義される。
+
+最初に適当なデータサンプルを選び、距離eps以内にmin_samples以上のデータポイントがあればその点はコアサンプルとなり、新しいクラスタラベルが割り当てられる。次に新しいデータポイントから距離eps内にあるデータポイントがあればクラスタに割り当てる。終わったら、どのクラスタにも属さない奴が残っていればそれもまた同じように処理する。その際にeps内にmin_sample数以上のデータポイントが無いデータはノイズとなる。
+
+最終的に3種類のデータポイントができる、コアポイント、コアポイントから距離eps内にあるデータポイント(境界ポイントと呼ぶ)とノイズの3つ。
+
+```
+from sklearn.cluster import DBSCAN
+X,y = make_blobs(random_state=0,n_samples=12)
+
+dbscan = DBSCAN()
+clusters = dbscan.fit_predict(X)
+print("Cluster memberships : \n{}".format(clusters))
+
+>> Cluster memberships : 
+>> [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+
+```
+全てのデータポイントがノイズを示す-1になっている。これはepsとmin_samplesのデフォルト設定が小さいといデータセットに適していないから。
+
+```
+mglearn.plots.plot_dbscan()
+```
+
+!["DBSCAN"](img/dbscan.png)
+
+epsとmin_samplesの色々なパターンをいれた図
+
+白い丸がノイズ、境界点は小さいマーカーでプロットされている。
+
+epsを増やす(図の左から右)とクラスタが多くなる、min_sampleを増やすと(図の上から下)より多くのポイントがノイズになる
+
+良いepsを見つけるにはStandardScalerやMinMaxScalerでスケール変換した方が良い。
+
+```
+from sklearn.datasets import make_moons
+X,y = make_moons(n_samples=200,noise=0.05,random_state=0)
+
+# データを平均0分散1にスケール変換
+scaler = StandardScaler()
+scaler.fit(X)
+X_scaled = scaler.transform(X)
+
+dbscan = DBSCAN()
+clusters = dbscan.fit_predict(X_scaled)
+
+# 結果をプロット
+plt.scatter(X_scaled[:,0],X_scaled[:,1],c=clusters,cmap=mglearn.cm2,s=60)
+plt.xlabel("Feature 0")
+plt.ylabel("Feature 1")
+```
+
+!["DBSCAN"](img/dbscan2.png)
+
+なんか複雑なやつもいい感じに分けられてる。
+
 
 
 .
