@@ -995,5 +995,79 @@ plt.ylabel("Feature 1")
 なんか複雑なやつもいい感じに分けられてる。
 
 
+#### クラスタリングアルゴリズムの比較と評価
+
+クラスタリングアルゴリズムを利用する際に問題になるのはアルゴリズムがどの程度うまく昨日したのかを判断して比較するのが難しいという点。
+
+正解データと比較して評価する指標がいくつかあって、調整ランド指数(ARI)と正規化相互情報量(NMI)というものがある。
+
+ただ、そもそも論正解データがあるなら教師ありでええやんけっていう話ではある。
+
+##### 正解データを用いない評価
+正解データが必要でない評価指標にシルエット係数というものがある。これはクラスタのコンパクトさを計算するもので、あまり複雑な形状に対応できない。
+
+
+#### 顔画像データセットを用いたアルゴリズムの比較
+
+```
+# lfwデータから固有顔を抽出して変換する
+from sklearn.decomposition import PCA
+pca = PCA(n_components=100,whiten=True,random_state=0)
+pca.fit_transform(X_people)
+X_pca = pca.transform(X_people)
+
+# デフォルト設定でDBSCANを適用する
+dbscan = DBSCAN()
+labels = dbscan.fit_predict(X_pca)
+print("Unique labels:{}".format(np.unique(labels)))
+
+>> unique labels:[-1]
+```
+全てのデータが -1 ノイズになってしまっている
+
+```
+dbscan = DBSCAN(min_samples=3)
+labels = dbscan.fit_predict(X_pca)
+print("Unique labels:{}".format(np.unique(labels)))
+
+>> unique labels:[-1]
+```
+サンプル数を減らしても全てノイズになっているので、eps(距離)を増やしてやる
+
+
+```
+dbscan = DBSCAN(min_samples=3,eps=15)
+labels = dbscan.fit_predict(X_pca)
+print("Unique labels:{}".format(np.unique(labels)))
+
+>> Unique labels:[-1  0]
+```
+
+1つのクラスタとノイズだけになった。これらがどういうデータなのか見ていく。
+
+```
+# クラスタとノイズのデータポイント数を数える
+# bincountは負の数を許さないので全てに1を加える
+# 結果の最初の数がノイズのデータポイント数
+print("Number of points per clusters:{}".format(np.bincount(labels+1)))
+
+>> Number of points per clusters:[  32 2031]
+```
+
+ノイズが32個ある、これを見てみる。
+
+```
+noise = X_people[labels == -1]
+
+fig,axes = plt.subplots(3,9,subplot_kw={'xticks':(),'yticks':()},figsize=(12,4))
+for image , ax in zip(noise,axes.ravel()):
+    ax.imshow(image.reshape(image_shape),vmin=0,vmax=1)
+```
+
+!["noise"](img/noise.png)
+
+グラスから飲み物飲んでたり、口元が見切れてたり角度や切り取り方で画角が狭すぎ、広すぎとかのデータというのがわかる。
+
+こういう何かおかしなものを見つけるものを外れ値検出(outlier detection)という。
 
 .
